@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>V Play Sports — Customer Feedback Management System</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #f4f6f9;
+      --surface: #ffffff;
+      --border: #e5e7eb;
+      --text: #111827;
+      --muted: #6b7280;
+      --primary: #ea580c;
+      --primary-dark: #c2410c;
+      --blue: #2563eb;
+      --green: #16a34a;
+      --amber: #d97706;
+      --red: #dc2626;
+      --star: #f59e0b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* Login / Role Gate */
+    .login-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .login-screen.hidden { display: none; }
+    .login-card {
+      width: 100%;
+      max-width: 430px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 26px;
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08);
+    }
+    .brand-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+    .logo-badge {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: #ffffff; color: var(--primary);
+      border: 1.5px solid #fed7aa;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 19px; flex-shrink: 0;
+    }
+    .brand-title { font-size: 15px; font-weight: 700; }
+    .brand-sub { font-size: 12px; color: var(--muted); }
+
+    .role-tabs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    .role-tab {
+      border: 1px solid var(--border);
+      background: #f9fafb;
+      padding: 8px 4px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #374151;
+    }
+    .role-tab.active {
+      background: #fff7ed;
+      border-color: var(--primary);
+      color: var(--primary-dark);
+    }
+
+    .error-msg {
+      background: #fef2f2; color: var(--red); border: 1px solid #fecaca;
+      padding: 8px 10px; border-radius: 7px; font-size: 12px; margin-bottom: 12px; display: none;
+    }
+    .error-msg.show { display: block; }
+    .hint-box {
+      margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border);
+      font-size: 11.5px; color: var(--muted); line-height: 1.55;
+    }
+
+    /* App Layout */
+    .app-shell { display: none; min-height: 100vh; width: 100%; }
+    .app-shell.active { display: flex; }
+
+    .sidebar {
+      width: 255px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 16px 14px;
+      flex-shrink: 0;
+    }
+    .sidebar-brand {
+      display: flex; align-items: center; gap: 10px;
+      padding-bottom: 14px; border-bottom: 1px solid var(--border); margin-bottom: 14px;
+    }
+    .nav-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
+      color: var(--muted); text-transform: uppercase; margin: 10px 8px 6px;
+    }
+    .nav-btn {
+      width: 100%; display: flex; align-items: center; justify-content: space-between;
+      background: transparent; border: none; padding: 9px 10px; border-radius: 8px;
+      font-size: 13px; font-weight: 500; color: #374151; cursor: pointer; margin-bottom: 3px; text-align: left;
+    }
+    .nav-btn:hover { background: #f3f4f6; }
+    .nav-btn.active { background: #fff7ed; color: var(--primary-dark); font-weight: 600; }
+    .count-pill {
+      background: #ffedd5; color: var(--primary-dark);
+      font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px;
+    }
+    .sync-footer {
+      margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--green); font-weight: 500;
+    }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+    /* Main */
+    .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .topbar {
+      height: 60px; background: var(--surface); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; padding: 0 22px; gap: 12px;
+    }
+    .search-box {
+      width: 100%; max-width: 380px; padding: 8px 12px;
+      border: 1px solid var(--border); border-radius: 8px; font-size: 13px; background: #f9fafb; outline: none;
+    }
+    .search-box:focus { border-color: var(--primary); background: #fff; }
+    .topbar-right { display: flex; align-items: center; gap: 10px; }
+    .user-chip { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+    .avatar {
+      width: 32px; height: 32px; border-radius: 50%; background: #ffedd5; color: var(--primary-dark);
+      display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px;
+    }
+
+    .workspace { padding: 22px; max-width: 1320px; width: 100%; }
+    .page-head {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 12px; margin-bottom: 18px; flex-wrap: wrap;
+    }
+    .page-head h1 { font-size: 20px; font-weight: 700; }
+    .page-head p { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+
+    /* Buttons */
+    .btn {
+      border: 1px solid var(--border); background: #fff; color: var(--text);
+      padding: 8px 13px; border-radius: 8px; font-size: 12.5px; font-weight: 600; cursor: pointer;
+    }
+    .btn:hover { background: #f9fafb; }
+    .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-blue { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+    /* Cards & Grids */
+    .kpi-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px;
+    }
+    .charts-grid {
+      display: grid; grid-template-columns: 1.3fr 1fr; gap: 14px; margin-bottom: 18px;
+    }
+    .split-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px;
+    }
+    @media (max-width: 1024px) {
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+      .charts-grid, .split-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 720px) {
+      .app-shell.active { flex-direction: column; }
+      .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
+      .kpi-grid { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px;
+    }
+    .card h2 { font-size: 14.5px; font-weight: 700; margin-bottom: 12px; }
+    .kpi-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .kpi-val { font-size: 24px; font-weight: 700; margin-bottom: 3px; }
+    .kpi-sub { font-size: 11.5px; color: var(--muted); }
+    .chart-box { position: relative; height: 250px; }
+
+    /* Forms & Star Rating */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } }
+    .field { margin-bottom: 12px; }
+    .field label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 5px; }
+    .field input, .field select, .field textarea {
+      width: 100%; padding: 8px 10px; border: 1px solid var(--border);
+      border-radius: 8px; font-size: 13px; background: #fff;
+    }
+    .field textarea { min-height: 84px; resize: vertical; }
+
+    .star-picker { display: inline-flex; gap: 6px; align-items: center; }
+    .star-btn {
+      font-size: 24px; background: none; border: none; cursor: pointer;
+      color: #d1d5db; line-height: 1; transition: transform 0.1s;
+    }
+    .star-btn.active { color: var(--star); }
+    .star-btn:hover { transform: scale(1.1); }
+    .stars-static { color: var(--star); letter-spacing: 1px; font-size: 14px; }
+
+    /* Table */
+    .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th, td { padding: 11px 14px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: top; }
+    th { background: #f9fafb; font-size: 11px; text-transform: uppercase; color: var(--muted); }
+    tr:last-child td { border-bottom: none; }
+
+    .badge { padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; display: inline-block; }
+    .st-new { background: #dbeafe; color: #1d4ed8; }
+    .st-review { background: #fef3c7; color: #b45309; }
+    .st-action { background: #ffedd5; color: #c2410c; }
+    .st-resolved { background: #dcfce7; color: #15803d; }
+
+    .role-pill { background: #f3f4f6; color: #374151; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+
+    /* Filters bar for reports */
+    .filter-bar {
+      display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px;
+      background: var(--surface); border: 1px solid var(--border); padding: 12px; border-radius: 10px;
+    }
+    .filter-bar select, .filter-bar input {
+      padding: 7px 10px; border: 1px solid var(--border); border-radius: 7px; font-size: 12.5px;
+    }
+
+    /* Modal */
+    .backdrop {
+      position: fixed; inset: 0; background: rgba(17, 24, 39, 0.45);
+      display: none; align-items: center; justify-content: center; padding: 16px; z-index: 50;
+    }
+    .backdrop.open { display: flex; }
+    .modal { background: #fff; border-radius: 12px; width: 100%; max-width: 450px; padding: 20px; }
+    .modal h3 { font-size: 16px; margin-bottom: 12px; }
+    .modal-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+
+    @media print {
+      .sidebar, .topbar, .no-print { display: none !important; }
+      .workspace { padding: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Login Screen -->
+  <section class="login-screen" id="loginScreen">
+    <div class="login-card">
+      <div class="brand-header">
+        <div class="logo-badge">V</div>
+        <div>
+          <div class="brand-title">V Play Sports</div>
+          <div class="brand-sub">Customer Feedback Management System</div>
+        </div>
+      </div>
+
+      <div class="role-tabs" id="loginRoleTabs">
+        <button type="button" class="role-tab active" data-role="ADMIN" onclick="selectLoginRole('ADMIN', this)">Admin</button>
+        <button type="button" class="role-tab" data-role="PLAYER" onclick="selectLoginRole('PLAYER', this)">Player</button>
+        <button type="button" class="role-tab" data-role="COACH" onclick="selectLoginRole('COACH', this)">Coach</button>
+        <button type="button" class="role-tab" data-role="PARENT" onclick="selectLoginRole('PARENT', this)">Parent</button>
+      </div>
+
+      <div class="error-msg" id="loginError">Invalid credentials for selected role.</div>
+
+      <form onsubmit="handleLogin(event)">
+        <input type="hidden" id="selectedRole" value="ADMIN" />
+        <div class="field">
+          <label for="loginUser">Username</label>
+          <input type="text" id="loginUser" required placeholder="Enter username" />
+        </div>
+        <div class="field">
+          <label for="loginPass">Password</label>
+          <input type="password" id="loginPass" required placeholder="Enter password" />
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%; padding:10px;">Sign In</button>
+      </form>
+
+      <div class="hint-box">
+        <strong>Demo Accounts:</strong><br />
+        Admin: <code>admin</code> / <code>123</code> &bull;
+        Player: <code>player</code> / <code>123</code><br />
+        Coach: <code>coach</code> / <code>123</code> &bull;
+        Parent: <code>parent</code> / <code>123</code>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Workspace -->
+  <div class="app-shell" id="appShell">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="logo-badge">V</div>
+        <div>
+          <div class="brand-title">V Play Sports</div>
+          <div class="brand-sub">Feedback Portal</div>
+        </div>
+      </div>
+
+      <div id="sidebarNav"></div>
+
+      <div class="sync-footer">
+        <span class="dot"></span>
+        <span>Saved locally &bull; Live</span>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <input
+          type="text"
+          id="globalSearch"
+          class="search-box"
+          placeholder="Search feedback by person, coach, facility, or comment..."
+          oninput="renderView()"
+        />
+        <div class="topbar-right">
+          <div class="user-chip">
+            <div class="avatar" id="userAvatar">VP</div>
+            <div>
+              <div style="font-weight:600;" id="userNameLabel">V Play Management</div>
+              <div style="font-size:10px; color:var(--muted); font-weight:700;" id="userRoleLabel">ADMIN</div>
+            </div>
+          </div>
+          <button class="btn" onclick="handleLogout()">Logout</button>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <div class="page-head">
+          <div>
+            <h1 id="pageTitle">Admin Dashboard</h1>
+            <p id="pageSub">Overview of V Play Sports feedback, coach &amp; facility ratings, and resolution status.</p>
+          </div>
+          <div id="pageActions" class="no-print"></div>
+        </div>
+
+        <div id="viewContainer"></div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Status Update Modal (Admin) -->
+  <div class="backdrop" id="statusModal">
+    <div class="modal">
+      <h3>Update Feedback Status</h3>
+      <form onsubmit="saveStatusUpdate(event)">
+        <input type="hidden" id="editFbId" />
+        <div class="field">
+          <label>Feedback Summary</label>
+          <input type="text" id="editFbSummary" disabled />
+        </div>
+        <div class="field">
+          <label for="editFbStatus">Tracking Status</label>
+          <select id="editFbStatus" required>
+            <option value="New">New</option>
+            <option value="In Review">In Review</option>
+            <option value="Action Taken">Action Taken</option>
+            <option value="Resolved">Resolved</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="editFbRemark">Management Action / Response Note</label>
+          <textarea id="editFbRemark" placeholder="Write action taken or response for the submitter..."></textarea>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn" onclick="closeStatusModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Status</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const FB_KEY = "vplay_sports_feedback_v1";
+    const SESSION_KEY = "vplay_sports_session_v1";
+
+    const ACCOUNTS = {
+      ADMIN: { username: "admin", password: "123", name: "V Play Management", initials: "VP" },
+      PLAYER: { username: "player", password: "123", name: "Rohan Sharma (U-17 Player)", initials: "RS" },
+      COACH: { username: "coach", password: "123", name: "Coach Vikram Rao", initials: "VR" },
+      PARENT: { username: "parent", password: "123", name: "Anitha Nair (Parent)", initials: "AN" }
+    };
+
+    const COACHES = ["Coach Vikram Rao", "Coach Meera Nair", "Coach Arjun Menon", "Coach Siddharth Das"];
+    const FACILITIES = ["Main Turf Ground", "Indoor Badminton Arena", "Fitness & Rehab Gym", "Swimming Complex", "Locker & Lounge"];
+
+    const initialFeedback = [
+      {
+        id: "FB-1001",
+        date: "2026-11-20",
+        role: "Player",
+        submitter: "Rohan Sharma",
+        batchOrRelation: "U-17 Football Batch",
+        coach: "Coach Vikram Rao",
+        facility: "Main Turf Ground",
+        category: "Training Quality",
+        coachRating: 5,
+        facilityRating: 4,
+        comment: "Evening tactical drills are well structured, though floodlights near corner 2 flicker slightly.",
+        status: "Action Taken",
+        remark: "Electrician scheduled to replace corner 2 LED floodlight this week."
+      },
+      {
+        id: "FB-1002",
+        date: "2026-11-21",
+        role: "Parent",
+        submitter: "Anitha Nair",
+        batchOrRelation: "Parent of Aarav (U-14)",
+        coach: "Coach Meera Nair",
+        facility: "Indoor Badminton Arena",
+        category: "Safety & Hygiene",
+        coachRating: 5,
+        facilityRating: 3,
+        comment: "Coach Meera gives great individual attention. Drinking water dispenser outside Court 3 needs faster refilling.",
+        status: "Resolved",
+        remark: "Added a second RO dispenser and assigned hourly housekeeping checks."
+      },
+      {
+        id: "FB-1003",
+        date: "2026-11-22",
+        role: "Coach",
+        submitter: "Coach Vikram Rao",
+        batchOrRelation: "Senior & U-17 Squad",
+        coach: "Coach Arjun Menon",
+        facility: "Fitness & Rehab Gym",
+        category: "Equipment & Gear",
+        coachRating: 4,
+        facilityRating: 3,
+        comment: "Need 6 additional agility hurdles and foam rollers before December inter-academy tournament.",
+        status: "In Review",
+        remark: "Procurement quote approved; delivery expected by Friday."
+      },
+      {
+        id: "FB-1004",
+        date: "2026-11-23",
+        role: "Player",
+        submitter: "Karthik R",
+        batchOrRelation: "U-19 Athletics",
+        coach: "Coach Siddharth Das",
+        facility: "Swimming Complex",
+        category: "Scheduling",
+        coachRating: 4,
+        facilityRating: 5,
+        comment: "Recovery pool temperature is ideal. Requesting an extra 30-minute morning slot on Saturdays.",
+        status: "New",
+        remark: ""
+      }
+    ];
+
+    let feedbacks = JSON.parse(localStorage.getItem(FB_KEY)) || initialFeedback;
+    let session = JSON.parse(localStorage.getItem(SESSION_KEY)) || null;
+    let currentView = "dashboard";
+    let charts = [];
+
+    function persist() {
+      localStorage.setItem(FB_KEY, JSON.stringify(feedbacks));
+      renderSidebar();
+      renderView();
+    }
+
+    function selectLoginRole(role, btn) {
+      document.getElementById("selectedRole").value = role;
+      document.querySelectorAll(".role-tab").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById("loginUser").value = ACCOUNTS[role].username;
+      document.getElementById("loginPass").value = "123";
+    }
+
+    function handleLogin(e) {
+      e.preventDefault();
+      const role = document.getElementById("selectedRole").value;
+      const user = document.getElementById("loginUser").value.trim().toLowerCase();
+      const pass = document.getElementById("loginPass").value;
+      const acc = ACCOUNTS[role];
+
+      if (!acc || acc.username !== user || acc.password !== pass) {
+        document.getElementById("loginError").classList.add("show");
+        return;
+      }
+
+      document.getElementById("loginError").classList.remove("show");
+      session = { role, name: acc.name, initials: acc.initials };
+      localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+      currentView = role === "ADMIN" ? "dashboard" : "submit";
+      initApp();
+    }
+
+    function handleLogout() {
+      session = null;
+      localStorage.removeItem(SESSION_KEY);
+      document.getElementById("loginScreen").classList.remove("hidden");
+      document.getElementById("appShell").classList.remove("active");
+    }
+
+    function initApp() {
+      if (!session) {
+        document.getElementById("loginScreen").classList.remove("hidden");
+        document.getElementById("appShell").classList.remove("active");
+        return;
+      }
+      document.getElementById("loginScreen").classList.add("hidden");
+      document.getElementById("appShell").classList.add("active");
+      document.getElementById("userAvatar").textContent = session.initials;
+      document.getElementById("userNameLabel").textContent = session.name;
+      document.getElementById("userRoleLabel").textContent = session.role;
+
+      renderSidebar();
+      renderView();
+    }
+
+    function renderSidebar() {
+      const nav = document.getElementById("sidebarNav");
+      const openCount = feedbacks.filter(f => f.status !== "Resolved").length;
+
+      if (session.role === "ADMIN") {
+        nav.innerHTML = `
+          <div class="nav-label">V Play Management</div>
+          <button class="nav-btn ${currentView === "dashboard" ? "active" : ""}" onclick="goView('dashboard')">Admin Dashboard</button>
+          <button class="nav-btn ${currentView === "analytics" ? "active" : ""}" onclick="goView('analytics')">Feedback Analytics</button>
+          <button class="nav-btn ${currentView === "ratings" ? "active" : ""}" onclick="goView('ratings')">Coach &amp; Facility Ratings</button>
+          <button class="nav-btn ${currentView === "tracking" ? "active" : ""}" onclick="goView('tracking')">
+            <span>Feedback Status Tracking</span>
+            <span class="count-pill">${openCount}</span>
+          </button>
+          <button class="nav-btn ${currentView === "reports" ? "active" : ""}" onclick="goView('reports')">Management Reports</button>
+          <div class="nav-label">Submit Entry</div>
+          <button class="nav-btn ${currentView === "submit" ? "active" : ""}" onclick="goView('submit')">Submit Feedback</button>
+        `;
+      } else {
+        const roleLabel = session.role.charAt(0) + session.role.slice(1).toLowerCase();
+        nav.innerHTML = `
+          <div class="nav-label">${roleLabel} Portal</div>
+          <button class="nav-btn ${currentView === "submit" ? "active" : ""}" onclick="goView('submit')">Submit ${roleLabel} Feedback</button>
+          <button class="nav-btn ${currentView === "my-tracking" ? "active" : ""}" onclick="goView('my-tracking')">Track Feedback Status</button>
+          <button class="nav-btn ${currentView === "ratings" ? "active" : ""}" onclick="goView('ratings')">Coach &amp; Facility Ratings</button>
+        `;
+      }
+    }
+
+    function goView(view) {
+      currentView = view;
+      renderSidebar();
+      renderView();
+    }
+
+    function destroyCharts() {
+      charts.forEach(c => c.destroy());
+      charts = [];
+    }
+
+    function starsHtml(val) {
+      const rounded = Math.round(Number(val) || 0);
+      return `<span class="stars-static">${"★".repeat(rounded)}${"☆".repeat(5 - rounded)}</span> <strong>${Number(val).toFixed(1)}</strong>`;
+    }
+
+    function statusBadge(status) {
+      const cls =
+        status === "Resolved" ? "st-resolved" :
+        status === "Action Taken" ? "st-action" :
+        status === "In Review" ? "st-review" : "st-new";
+      return `<span class="badge ${cls}">${esc(status)}</span>`;
+    }
+
+    function filteredFeedbacks() {
+      const q = document.getElementById("globalSearch").value.trim().toLowerCase();
+      return feedbacks.filter(f =>
+        !q ||
+        f.id.toLowerCase().includes(q) ||
+        f.submitter.toLowerCase().includes(q) ||
+        f.role.toLowerCase().includes(q) ||
+        f.coach.toLowerCase().includes(q) ||
+        f.facility.toLowerCase().includes(q) ||
+        f.comment.toLowerCase().includes(q)
+      );
+    }
+
+    function renderView() {
+      destroyCharts();
+      const titleEl = document.getElementById("pageTitle");
+      const subEl = document.getElementById("pageSub");
+      const actionsEl = document.getElementById("pageActions");
+      const container = document.getElementById("viewContainer");
+      actionsEl.innerHTML = "";
+
+      const list = filteredFeedbacks();
+
+      if (currentView === "submit") {
+        const defaultRole = session.role === "ADMIN" ? "Player" : (session.role.charAt(0) + session.role.slice(1).toLowerCase());
+        titleEl.textContent = `${defaultRole} Feedback Form`;
+        subEl.textContent = "Rate your coaching experience and V Play Sports facilities, and submit suggestions or issues.";
+        container.innerHTML = renderSubmitForm(defaultRole);
+        bindStarPickers();
+        return;
+      }
+
+      if (currentView === "my-tracking") {
+        titleEl.textContent = "Feedback Status Tracking";
+        subEl.textContent = "Track review progress and management responses on submitted feedback.";
+        actionsEl.innerHTML = `<button class="btn btn-primary" onclick="goView('submit')">+ New Feedback</button>`;
+        container.innerHTML = renderTrackingTable(list, false);
+        return;
+      }
+
+      if (currentView === "ratings") {
+        titleEl.textContent = "Coach & Facility-Wise Star Ratings";
+        subEl.textContent = "Aggregated star ratings across V Play Sports coaches and training facilities.";
+        container.innerHTML = renderRatingsView();
+        return;
+      }
+
+      if (currentView === "tracking") {
+        titleEl.textContent = "Feedback Status Tracking";
+        subEl.textContent = "Review submissions from players, coaches, and parents and update resolution status.";
+        actionsEl.innerHTML = `<button class="btn btn-primary" onclick="goView('submit')">+ Log Feedback</button>`;
+        container.innerHTML = renderTrackingTable(list, true);
+        return;
+      }
+
+      if (currentView === "analytics") {
+        titleEl.textContent = "Feedback Analytics";
+        subEl.textContent = "Visual breakdown by submitter role, status pipeline, and category ratings.";
+        container.innerHTML = renderAnalyticsView();
+        renderAnalyticsCharts();
+        return;
+      }
+
+      if (currentView === "reports") {
+        titleEl.textContent = "V Play Sports Management Reports";
+        subEl.textContent = "Filter feedback data and export CSV or print management summaries.";
+        actionsEl.innerHTML = `
+          <button class="btn" onclick="exportCSV()">Export CSV</button>
+          <button class="btn btn-primary" onclick="window.print()">Print Report</button>
+        `;
+        container.innerHTML = renderReportsView();
+        return;
+      }
+
+      // Default: Admin Dashboard
+      titleEl.textContent = "Admin Dashboard";
+      subEl.textContent = "Real-time overview of player, coach, and parent feedback across V Play Sports.";
+      actionsEl.innerHTML = `
+        <button class="btn" onclick="goView('reports')">View Reports</button>
+        <button class="btn btn-primary" onclick="goView('submit')">+ Submit Feedback</button>
+      `;
+      container.innerHTML = renderAdminDashboard(list);
+      renderDashboardCharts();
+    }
+
+    function renderSubmitForm(defaultRole) {
+      return `
+        <div class="card" style="max-width:760px;">
+          <h2>Submit V Play Sports Feedback</h2>
+          <form onsubmit="submitFeedback(event)">
+            <div class="form-grid">
+              <div class="field">
+                <label for="fbRole">Submitting As</label>
+                <select id="fbRole" required>
+                  <option value="Player" ${defaultRole === "Player" ? "selected" : ""}>Player</option>
+                  <option value="Coach" ${defaultRole === "Coach" ? "selected" : ""}>Coach</option>
+                  <option value="Parent" ${defaultRole === "Parent" ? "selected" : ""}>Parent</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="fbName">Your Name</label>
+                <input type="text" id="fbName" required value="${esc(session.role === "ADMIN" ? "" : session.name.split(" (")[0])}" placeholder="Enter full name" />
+              </div>
+              <div class="field">
+                <label for="fbBatch">Batch / Squad / Player Relation</label>
+                <input type="text" id="fbBatch" required placeholder="e.g., U-17 Football / Parent of Aarav" />
+              </div>
+              <div class="field">
+                <label for="fbCategory">Feedback Category</label>
+                <select id="fbCategory" required>
+                  <option value="Training Quality">Training Quality</option>
+                  <option value="Facility & Maintenance">Facility &amp; Maintenance</option>
+                  <option value="Safety & Hygiene">Safety &amp; Hygiene</option>
+                  <option value="Equipment & Gear">Equipment &amp; Gear</option>
+                  <option value="Scheduling">Scheduling &amp; Timings</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="fbCoach">Select Coach</label>
+                <select id="fbCoach" required>
+                  ${COACHES.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("")}
+                </select>
+              </div>
+              <div class="field">
+                <label for="fbFacility">Select Facility</label>
+                <select id="fbFacility" required>
+                  ${FACILITIES.map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join("")}
+                </select>
+              </div>
+            </div>
+
+            <div class="form-grid" style="margin-top:4px;">
+              <div class="field">
+                <label>Coach Star Rating</label>
+                <input type="hidden" id="coachRatingVal" value="5" />
+                <div class="star-picker" data-target="coachRatingVal">
+                  ${[1,2,3,4,5].map(n => `<button type="button" class="star-btn active" data-val="${n}">★</button>`).join("")}
+                </div>
+              </div>
+              <div class="field">
+                <label>Facility Star Rating</label>
+                <input type="hidden" id="facilityRatingVal" value="5" />
+                <div class="star-picker" data-target="facilityRatingVal">
+                  ${[1,2,3,4,5].map(n => `<button type="button" class="star-btn active" data-val="${n}">★</button>`).join("")}
+                </div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="fbComment">Detailed Feedback / Suggestions</label>
+              <textarea id="fbComment" required placeholder="Share what went well or what needs improvement..."></textarea>
+            </div>
+
+            <div style="display:flex; gap:10px; align-items:center;">
+              <button type="submit" class="btn btn-primary">Submit Feedback</button>
+              <span id="submitSuccessMsg" style="font-size:12.5px; color:var(--green); font-weight:600; display:none;">Feedback submitted &amp; added to tracking!</span>
+            </div>
+          </form>
+        </div>
+      `;
+    }
+
+    function bindStarPickers() {
+      document.querySelectorAll(".star-picker").forEach(picker => {
+        const targetInput = document.getElementById(picker.dataset.target);
+        const buttons = picker.querySelectorAll(".star-btn");
+        buttons.forEach(btn => {
+          btn.addEventListener("click", () => {
+            const val = Number(btn.dataset.val);
+            targetInput.value = val;
+            buttons.forEach(b => b.classList.toggle("active", Number(b.dataset.val) <= val));
+          });
+        });
+      });
+    }
+
+    function submitFeedback(e) {
+      e.preventDefault();
+      const newEntry = {
+        id: "FB-" + (1001 + feedbacks.length),
+        date: new Date().toISOString().slice(0, 10),
+        role: document.getElementById("fbRole").value,
+        submitter: document.getElementById("fbName").value.trim(),
+        batchOrRelation: document.getElementById("fbBatch").value.trim(),
+        coach: document.getElementById("fbCoach").value,
+        facility: document.getElementById("fbFacility").value,
+        category: document.getElementById("fbCategory").value,
+        coachRating: Number(document.getElementById("coachRatingVal").value),
+        facilityRating: Number(document.getElementById("facilityRatingVal").value),
+        comment: document.getElementById("fbComment").value.trim(),
+        status: "New",
+        remark: ""
+      };
+      feedbacks.unshift(newEntry);
+      persist();
+      const msg = document.getElementById("submitSuccessMsg");
+      if (msg) msg.style.display = "inline";
+    }
+
+    function calcStats() {
+      const total = feedbacks.length;
+      const avgCoach = total ? feedbacks.reduce((s, f) => s + f.coachRating, 0) / total : 0;
+      const avgFac = total ? feedbacks.reduce((s, f) => s + f.facilityRating, 0) / total : 0;
+      const resolved = feedbacks.filter(f => f.status === "Resolved").length;
+      const pending = total - resolved;
+      const resRate = total ? Math.round((resolved / total) * 100) : 0;
+      return { total, avgCoach, avgFac, resolved, pending, resRate };
+    }
+
+    function renderAdminDashboard(list) {
+      const s = calcStats();
+      return `
+        <div class="kpi-grid">
+          <div class="card">
+            <div class="kpi-label">Total Feedback Received</div>
+            <div class="kpi-val">${s.total}</div>
+            <div class="kpi-sub">Players, Coaches &amp; Parents</div>
+          </div>
+          <div class="card">
+            <div class="kpi-label">Average Coach Rating</div>
+            <div class="kpi-val">${s.avgCoach.toFixed(1)} <span style="color:var(--star); font-size:20px;">★</span></div>
+            <div class="kpi-sub">Across ${COACHES.length} V Play coaches</div>
+          </div>
+          <div class="card">
+            <div class="kpi-label">Average Facility Rating</div>
+            <div class="kpi-val">${s.avgFac.toFixed(1)} <span style="color:var(--star); font-size:20px;">★</span></div>
+            <div class="kpi-sub">Across ${FACILITIES.length} training venues</div>
+          </div>
+          <div class="card">
+            <div class="kpi-label">Open / Pending Items</div>
+            <div class="kpi-val" style="color:var(--primary);">${s.pending}</div>
+            <div class="kpi-sub">${s.resRate}% resolution rate (${s.resolved} resolved)</div>
+          </div>
+        </div>
+
+        <div class="charts-grid">
+          <div class="card">
+            <h2>Feedback Volume by Stakeholder Role</h2>
+            <div class="chart-box"><canvas id="dashRoleChart"></canvas></div>
+          </div>
+          <div class="card">
+            <h2>Status Distribution</h2>
+            <div class="chart-box"><canvas id="dashStatusChart"></canvas></div>
+          </div>
+        </div>
+
+        ${renderTrackingTable(list.slice(0, 6), true)}
+      `;
+    }
+
+    function renderDashboardCharts() {
+      const roleCounts = ["Player", "Coach", "Parent"].map(
+        r => feedbacks.filter(f => f.role === r).length
+      );
+      const statuses = ["New", "In Review", "Action Taken", "Resolved"];
+      const statusCounts = statuses.map(
+        st => feedbacks.filter(f => f.status === st).length
+      );
+
+      const c1 = document.getElementById("dashRoleChart");
+      const c2 = document.getElementById("dashStatusChart");
+      if (c1) {
+        charts.push(new Chart(c1.getContext("2d"), {
+          type: "bar",
+          data: {
+            labels: ["Player", "Coach", "Parent"],
+            datasets: [{
+              label: "Submissions",
+              data: roleCounts,
+              backgroundColor: ["#ea580c", "#2563eb", "#16a34a"],
+              borderRadius: 6
+            }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+        }));
+      }
+      if (c2) {
+        charts.push(new Chart(c2.getContext("2d"), {
+          type: "doughnut",
+          data: {
+            labels: statuses,
+            datasets: [{
+              data: statusCounts,
+              backgroundColor: ["#3b82f6", "#f59e0b", "#f97316", "#16a34a"]
+            }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, cutout: "62%", plugins: { legend: { position: "bottom" } } }
+        }));
+      }
+    }
+
+    function renderAnalyticsView() {
+      return `
+        <div class="charts-grid">
+          <div class="card">
+            <h2>Average Rating by Coach</h2>
+            <div class="chart-box"><canvas id="coachBarChart"></canvas></div>
+          </div>
+          <div class="card">
+            <h2>Average Rating by Facility</h2>
+            <div class="chart-box"><canvas id="facilityBarChart"></canvas></div>
+          </div>
+        </div>
+        ${renderRatingsView()}
+      `;
+    }
+
+    function renderAnalyticsCharts() {
+      const coachAvgs = COACHES.map(c => {
+        const items = feedbacks.filter(f => f.coach === c);
+        return items.length ? +(items.reduce((s, i) => s + i.coachRating, 0) / items.length).toFixed(2) : 0;
+      });
+      const facAvgs = FACILITIES.map(fac => {
+        const items = feedbacks.filter(f => f.facility === fac);
+        return items.length ? +(items.reduce((s, i) => s + i.facilityRating, 0) / items.length).toFixed(2) : 0;
+      });
+
+      const cc = document.getElementById("coachBarChart");
+      const fc = document.getElementById("facilityBarChart");
+      if (cc) {
+        charts.push(new Chart(cc.getContext("2d"), {
+          type: "bar",
+          data: {
+            labels: COACHES,
+            datasets: [{ label: "Avg Coach Stars", data: coachAvgs, backgroundColor: "#ea580c", borderRadius: 5 }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 5 } } }
+        }));
+      }
+      if (fc) {
+        charts.push(new Chart(fc.getContext("2d"), {
+          type: "bar",
+          data: {
+            labels: FACILITIES,
+            datasets: [{ label: "Avg Facility Stars", data: facAvgs, backgroundColor: "#2563eb", borderRadius: 5 }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 5 } } }
+        }));
+      }
+    }
+
+    function renderRatingsView() {
+      const coachRows = COACHES.map(c => {
+        const items = feedbacks.filter(f => f.coach === c);
+        const avg = items.length ? items.reduce((s, i) => s + i.coachRating, 0) / items.length : 0;
+        return `<tr><td><strong>${esc(c)}</strong></td><td>${items.length}</td><td>${starsHtml(avg)}</td></tr>`;
+      }).join("");
+
+      const facRows = FACILITIES.map(fac => {
+        const items = feedbacks.filter(f => f.facility === fac);
+        const avg = items.length ? items.reduce((s, i) => s + i.facilityRating, 0) / items.length : 0;
+        return `<tr><td><strong>${esc(fac)}</strong></td><td>${items.length}</td><td>${starsHtml(avg)}</td></tr>`;
+      }).join("");
+
+      return `
+        <div class="split-grid">
+          <div class="card">
+            <h2>Coach-Wise Star Ratings</h2>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Coach</th><th>Reviews</th><th>Rating</th></tr></thead>
+                <tbody>${coachRows}</tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card">
+            <h2>Facility-Wise Star Ratings</h2>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Facility</th><th>Reviews</th><th>Rating</th></tr></thead>
+                <tbody>${facRows}</tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderTrackingTable(list, canEdit) {
+      if (!list.length) {
+        return `<div class="card" style="text-align:center; color:var(--muted);">No feedback records match your search.</div>`;
+      }
+      return `
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID &amp; Date</th>
+                <th>Submitted By</th>
+                <th>Coach &amp; Facility</th>
+                <th>Ratings</th>
+                <th>Feedback &amp; Management Note</th>
+                <th>Status</th>
+                ${canEdit ? `<th class="no-print">Action</th>` : ""}
+              </tr>
+            </thead>
+            <tbody>
+              ${list.map(f => `
+                <tr>
+                  <td><strong>${esc(f.id)}</strong><br /><span style="font-size:11.5px; color:var(--muted);">${esc(f.date)}</span></td>
+                  <td>
+                    <span class="role-pill">${esc(f.role)}</span><br />
+                    <strong>${esc(f.submitter)}</strong><br />
+                    <span style="font-size:11.5px; color:var(--muted);">${esc(f.batchOrRelation)}</span>
+                  </td>
+                  <td>
+                    <strong>${esc(f.coach)}</strong><br />
+                    <span style="font-size:12px; color:var(--muted);">${esc(f.facility)}</span>
+                  </td>
+                  <td>
+                    <div>Coach: ${starsHtml(f.coachRating)}</div>
+                    <div>Facility: ${starsHtml(f.facilityRating)}</div>
+                  </td>
+                  <td style="max-width:300px;">
+                    <div>${esc(f.comment)}</div>
+                    ${f.remark ? `<div style="margin-top:6px; font-size:12px; color:#15803d; background:#f0fdf4; padding:5px 8px; border-radius:6px;"><strong>Response:</strong> ${esc(f.remark)}</div>` : ""}
+                  </td>
+                  <td>${statusBadge(f.status)}</td>
+                  ${canEdit ? `<td class="no-print"><button class="btn" style="padding:5px 9px; font-size:12px;" onclick="openStatusModal('${f.id}')">Update</button></td>` : ""}
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderReportsView() {
+      const roleVal = document.getElementById("repRole")?.value || "ALL";
+      const statusVal = document.getElementById("repStatus")?.value || "ALL";
+      const facVal = document.getElementById("repFacility")?.value || "ALL";
+
+      const rows = feedbacks.filter(f =>
+        (roleVal === "ALL" || f.role === roleVal) &&
+        (statusVal === "ALL" || f.status === statusVal) &&
+        (facVal === "ALL" || f.facility === facVal)
+      );
+
+      return `
+        <div class="filter-bar no-print">
+          <select id="repRole" onchange="renderReportsOnly()">
+            <option value="ALL">All Roles (Player, Coach, Parent)</option>
+            <option value="Player">Player</option>
+            <option value="Coach">Coach</option>
+            <option value="Parent">Parent</option>
+          </select>
+          <select id="repStatus" onchange="renderReportsOnly()">
+            <option value="ALL">All Statuses</option>
+            <option value="New">New</option>
+            <option value="In Review">In Review</option>
+            <option value="Action Taken">Action Taken</option>
+            <option value="Resolved">Resolved</option>
+          </select>
+          <select id="repFacility" onchange="renderReportsOnly()">
+            <option value="ALL">All Facilities</option>
+            ${FACILITIES.map(fac => `<option value="${esc(fac)}">${esc(fac)}</option>`).join("")}
+          </select>
+        </div>
+        <div id="reportTableHolder">${renderTrackingTable(rows, false)}</div>
+      `;
+    }
+
+    function renderReportsOnly() {
+      const roleVal = document.getElementById("repRole").value;
+      const statusVal = document.getElementById("repStatus").value;
+      const facVal = document.getElementById("repFacility").value;
+      const rows = feedbacks.filter(f =>
+        (roleVal === "ALL" || f.role === roleVal) &&
+        (statusVal === "ALL" || f.status === statusVal) &&
+        (facVal === "ALL" || f.facility === facVal)
+      );
+      document.getElementById("reportTableHolder").innerHTML = renderTrackingTable(rows, false);
+    }
+
+    function exportCSV() {
+      const headers = ["ID", "Date", "Role", "Submitter", "Batch/Relation", "Coach", "Facility", "Category", "Coach Rating", "Facility Rating", "Status", "Comment", "Management Response"];
+      const lines = [headers.join(",")];
+      feedbacks.forEach(f => {
+        const vals = [f.id, f.date, f.role, f.submitter, f.batchOrRelation, f.coach, f.facility, f.category, f.coachRating, f.facilityRating, f.status, f.comment, f.remark]
+          .map(v => `"${String(v || "").replace(/"/g, '""')}"`);
+        lines.push(vals.join(","));
+      });
+      const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `v-play-sports-feedback-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function openStatusModal(id) {
+      const item = feedbacks.find(f => f.id === id);
+      if (!item) return;
+      document.getElementById("editFbId").value = item.id;
+      document.getElementById("editFbSummary").value = `${item.id} — ${item.submitter} (${item.role})`;
+      document.getElementById("editFbStatus").value = item.status;
+      document.getElementById("editFbRemark").value = item.remark || "";
+      document.getElementById("statusModal").classList.add("open");
+    }
+
+    function closeStatusModal() {
+      document.getElementById("statusModal").classList.remove("open");
+    }
+
+    function saveStatusUpdate(e) {
+      e.preventDefault();
+      const id = document.getElementById("editFbId").value;
+      const item = feedbacks.find(f => f.id === id);
+      if (!item) return;
+      item.status = document.getElementById("editFbStatus").value;
+      item.remark = document.getElementById("editFbRemark").value.trim();
+      closeStatusModal();
+      persist();
+    }
+
+    function esc(str) {
+      return String(str).replace(/[&<>"']/g, c => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      }[c]));
+    }
+
+    initApp();
+  </script>
+</body>
+</html>
